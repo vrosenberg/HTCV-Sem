@@ -14,4 +14,4 @@ DAMAGE_LEVEL_TO_SCORE = {
     "no-damage" : 1,
 }
 
-PREDETERMINED_RANDOM_DATA_PATH = os.path.join("dataset","xview2.txt")
+PREDETERMINED_RANDOM_DATA_PATH = os.path.join(os.path.dirname(__file__),"..","dataset","xview2.txt")

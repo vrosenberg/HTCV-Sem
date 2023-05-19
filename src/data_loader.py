@@ -15,11 +15,11 @@ def load_data(data_type = "train", percentage_as_str = "100"):
 
     for file in files:
         data.append((file,round(calc_average_damage(file, data_type))))
-    return numpy.array(data)
+    return data
 
 def calc_average_damage(file, data_type):
     
-    label_file_path = os.path.join("dataset",data_type,"labels",file.split('.')[0]+".json")
+    label_file_path = os.path.join(os.path.dirname(__file__),"..","dataset",data_type,"labels",file.split('.')[0]+".json")
     f = open(label_file_path)
     label_data = json.load(f)
     total_dmg = 0.0
@@ -36,5 +36,5 @@ def calc_average_damage(file, data_type):
     return total_dmg/count
 
 if __name__ == '__main__':
-    print(load_data()[:,1])
+    print(numpy.array(load_data())[:,1])
 
