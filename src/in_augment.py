@@ -3,7 +3,7 @@ import numpy as np
 import json
 import re
 import os
-from data_loader import calc_average_damage
+from data_preprocessor import calc_average_damage
 from shapely.geometry import Point, Polygon
 
 
