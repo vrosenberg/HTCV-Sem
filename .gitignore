@@ -7,6 +7,7 @@ data/
 dataset-test/
 augmented_data/
 example_data/
+augmented_dataset/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
