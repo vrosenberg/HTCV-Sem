@@ -552,7 +552,7 @@ if __name__ == "__main__":
     parser.add_argument('-out', '--output', type=str, help='Output directory of augmented images', required=True)
     parser.add_argument('-ds', '--dssize', type=int, help='The original image pool, based off of the xview2.txt. i.e.: 280, 700, 1400, 2799', required=True)
     parser.add_argument('-num', '--number', type=int, help='Set \'number\' to activate random sampling of said amount. Don\'t set to activate linear/Single-Instace sampling', required=False)
-    parser.add_argument('-txt', '--txtxview2', type=str, default='./data/xview2.txt', help='Path to xview2.txt file', required=True)
+    parser.add_argument('-txt', '--txtxview2', type=str, default='./data/xview2.txt', help='Path to xview2.txt file', required=False)
     args = parser.parse_args()
 
     src_path = args.source #"./data/train/"
