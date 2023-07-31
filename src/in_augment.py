@@ -8,6 +8,7 @@ import math
 import random
 import time
 from PIL import Image, ImageDraw
+import argparse
 
 
 np.random.seed(int(time.time()))
@@ -21,17 +22,24 @@ DAMAGE_LEVEL_TO_SCORE = {
     "no-building" : 0
 }
 
-BASE_DATA_PATH = "only_all/"
-DS_SIZE = 2799
-AMOUNT_OF_SAMPLES = 28000
+IACONFIG = {
+        "input_shape" : 224,
+        "initial_shape" : 48,
+        "resize_shapes" : [134,80,48] # Order from larger to smaller
+}
+#AUGMENTED_DATA_PATH = "./augmented_datasets/"
+#BASE_DATA_PATH = "base_100_linear/"
+#DS_SIZE = 2799
+#AMOUNT_OF_SAMPLES = 3000
 
-RESNET_INPUT_SHAPE = (224,224)
-INITIAL_PATCH_SHAPE = (48,48)
-RESIZE_PATCH_SHAPES = [(134,134),(80,80),(48,48)]
-IMAGE_SHAPE = (1024,1024)
-LABELS_PATH = "./data/train/labels/"
-IMAGES_PATH = "./data/train/images/"
-AUGMENTED_DATA_PATH = "./augmented_data/"
+#RESNET_INPUT_SHAPE = (224,224)
+#INITIAL_PATCH_SHAPE = (48,48)
+#RESIZE_PATCH_SHAPES = [(134,134),(80,80),(48,48)]
+#IMAGE_SHAPE = (1024,1024)
+#LABELS_PATH = "./data/train/labels/"
+#IMAGES_PATH = "./data/train/images/"
+
+
 
 
 def get_random_patch(image, H_patch, W_patch):
@@ -266,46 +274,55 @@ def calc_average_damage(memory_map):
         average = round(total/count)
 
     return average
-if __name__ == "__main__":
 
-    json_files = os.listdir(LABELS_PATH)
+
+def performIAPerImage(src_path, out_path, ds_size, IAconfig, xview_txt):
+    #json_files = os.listdir(LABELS_PATH)
+
+    resnet_input_shape = (IAconfig["input_shape"],IAconfig["input_shape"])
+    resize_patch_shapes = [(length,length) for length in IAconfig["resize_shapes"]]
+    initial_patch_shape = (IAconfig["initial_shape"],IAconfig["initial_shape"])
+
+    img_path = src_path + "images/"
+    label_path = src_path + "labels/"
 
     class_instances_orig = [0,0,0,0,0]
     class_instances = [0,0,0,0,0]
 
     #for i in range(AMOUNT_OF_SAMPLES):
 
-    with open("data/xview2.txt","r") as file:
+    with open(xview_txt,"r") as file:
         xview_entries = file.readlines()
     xview_entries = [line.strip() for line in xview_entries]
-    xview_entries = xview_entries[:DS_SIZE]
+    xview_entries = xview_entries[:ds_size]
 
-    for i, file in enumerate(xview_entries):
+    #for i in range(AMOUNT_OF_SAMPLES): 
+    for i, file in enumerate(xview_entries):    
         #file = np.random.choice(xview_entries)
         if "post" not in file:
             continue
         print(file)
         img_name = file.split('.')[0] + '.png'
         json_name = file.split('.')[0] + '.json'
-        image = cv2.imread(IMAGES_PATH + img_name, cv2.IMREAD_UNCHANGED)
-        scale_factor = RESNET_INPUT_SHAPE[0]/image.shape[0]
+        image = cv2.imread(img_path + img_name, cv2.IMREAD_UNCHANGED)
+        scale_factor = resnet_input_shape[0]/image.shape[0]
         
-        resized_img = cv2.resize(image, RESNET_INPUT_SHAPE)
+        resized_img = cv2.resize(image, resnet_input_shape)
         augmented_image = resized_img.copy()
         
-        f = open(LABELS_PATH+json_name)
+        f = open(label_path+json_name)
         label_data = json.load(f)
 
-        target_data = get_pixel_data(label_data, RESNET_INPUT_SHAPE, scale_factor)
+        target_data = get_pixel_data(label_data, resnet_input_shape, scale_factor)
         augmented_target = target_data.copy()
 
         memory_map = get_memory_map(augmented_target)
         orig_avg = calc_average_damage(memory_map)
         #print("original average: " + str(orig_avg))
-        for idx, resize_shape in enumerate(RESIZE_PATCH_SHAPES):
+        for idx, resize_shape in enumerate(resize_patch_shapes):
             
             # Copy from original image/ref
-            patch, target_patch = copy_patch(resized_img, target_data, INITIAL_PATCH_SHAPE[0],INITIAL_PATCH_SHAPE[1], idx + 1)
+            patch, target_patch = copy_patch(resized_img, target_data, initial_patch_shape[0],initial_patch_shape[1], idx + 1)
 
             # Resize it
             resized_patch = cv2.resize(patch, resize_shape)
@@ -318,13 +335,16 @@ if __name__ == "__main__":
         avg = calc_average_damage(memory_map)
 
         #print("new average: " + str(avg))
-        print(i)
+        #print(i)
         
         class_instances_orig[orig_avg] += 1
         class_instances[avg] += 1
 
-        
-        cv2.imwrite(AUGMENTED_DATA_PATH+ BASE_DATA_PATH + str(avg) + "/" + file.split('.')[0] +"_id_" + str(i) +".png", augmented_image)
+        save_img_folder_path = out_path + str(avg) + "/"
+        save_img_path = save_img_folder_path + file.split('.')[0] +"_id_" + str(i) +".png"
+        if(not os.path.exists(save_img_folder_path)):
+            os.makedirs(save_img_folder_path)  
+        cv2.imwrite(out_path + str(avg) + "/" + file.split('.')[0] +"_id_" + str(i) +".png", augmented_image)
 
         SAVE_VISUALIZED_EXAMPLES = False
         if SAVE_VISUALIZED_EXAMPLES:
@@ -390,3 +410,160 @@ if __name__ == "__main__":
     print("")
     print("class_instances_orig:")
     print(class_instances_orig)
+
+def performIARandom(src_path, out_path, ds_size, IAconfig, samples, xview_txt):
+    #json_files = os.listdir(LABELS_PATH)
+
+    resnet_input_shape = (IAconfig["input_shape"],IAconfig["input_shape"])
+    resize_patch_shapes = [(length,length) for length in IAconfig["resize_shapes"]]
+    initial_patch_shape = (IAconfig["initial_shape"],IAconfig["initial_shape"])
+
+    img_path = src_path + "images/"
+    label_path = src_path + "labels/"
+
+    class_instances_orig = [0,0,0,0,0]
+    class_instances = [0,0,0,0,0]
+
+
+    with open(xview_txt,"r") as file:
+        xview_entries = file.readlines()
+    xview_entries = [line.strip() for line in xview_entries]
+    xview_entries = xview_entries[:ds_size]
+
+    for i in range(samples): 
+        file = np.random.choice(xview_entries)
+        if "post" not in file:
+            continue
+        print(file)
+        img_name = file.split('.')[0] + '.png'
+        json_name = file.split('.')[0] + '.json'
+        image = cv2.imread(img_path + img_name, cv2.IMREAD_UNCHANGED)
+        scale_factor = resnet_input_shape[0]/image.shape[0]
+        
+        resized_img = cv2.resize(image, resnet_input_shape)
+        augmented_image = resized_img.copy()
+        
+        f = open(label_path+json_name)
+        label_data = json.load(f)
+
+        target_data = get_pixel_data(label_data, resnet_input_shape, scale_factor)
+        augmented_target = target_data.copy()
+
+        memory_map = get_memory_map(augmented_target)
+        orig_avg = calc_average_damage(memory_map)
+        #print("original average: " + str(orig_avg))
+        for idx, resize_shape in enumerate(resize_patch_shapes):
+            
+            # Copy from original image/ref
+            patch, target_patch = copy_patch(resized_img, target_data, initial_patch_shape[0],initial_patch_shape[1], idx + 1)
+
+            # Resize it
+            resized_patch = cv2.resize(patch, resize_shape)
+            resized_target_patch = cv2.resize(target_patch, resize_shape, interpolation=cv2.INTER_NEAREST)
+
+            # Paste it
+            augmented_image, augmented_target = paste_patch(augmented_image, resized_patch, augmented_target, resized_target_patch)
+            
+        memory_map = get_memory_map(augmented_target)
+        avg = calc_average_damage(memory_map)
+
+        #print("new average: " + str(avg))
+        #print(i)
+        
+        class_instances_orig[orig_avg] += 1
+        class_instances[avg] += 1
+
+        save_img_folder_path = out_path + str(avg) + "/"
+        save_img_path = save_img_folder_path + file.split('.')[0] +"_id_" + str(i) +".png"
+        if(not os.path.exists(save_img_folder_path)):
+            os.makedirs(save_img_folder_path)  
+        cv2.imwrite(out_path + str(avg) + "/" + file.split('.')[0] +"_id_" + str(i) +".png", augmented_image)
+
+        SAVE_VISUALIZED_EXAMPLES = False
+        if SAVE_VISUALIZED_EXAMPLES:
+            vals = []
+
+            for y in range(augmented_target.shape[0]):
+                for x in range(augmented_target.shape[1]):
+                    pixel_val = augmented_target[y,x]
+                    if(pixel_val[2] >= 0):
+                        vals.append((y,x,pixel_val[1]))
+                        
+            for y,x, patch_number in vals:
+                p = augmented_image[y,x]
+
+                #blue
+                if(patch_number == 0):
+                    p[0] = 255
+                    p[1] = 0
+                    p[2] = 0
+                
+                #gree
+                if(patch_number == 1):
+                    p[0] = 0
+                    p[1] = 255
+                    p[2] = 0
+                #red
+                if(patch_number == 2):
+                    p[0] = 0
+                    p[1] = 0
+                    p[2] = 255
+                #cyan
+                if(patch_number == 3):
+                    p[0] = 255
+                    p[1] = 233
+                    p[2] = 0
+                augmented_image[y,x] = p
+            
+
+            vals = []
+            for y in range(target_data.shape[0]):
+                for x in range(target_data.shape[1]):
+                    pixel_val = target_data[y,x]
+                    if(pixel_val[2] >= 0):
+                        vals.append((y,x))
+                        
+            for y,x in vals:
+                #blue
+                p = resized_img[y,x]
+                p[0] = 255
+                p[1] = 0
+                p[2] = 0
+                resized_img[y,x] = p
+
+            if( orig_avg == avg):
+                cv2.imwrite("augmented_data/visual_examples/" + file.split('.')[0] + "_labeled.png", resized_img)
+                cv2.imwrite("augmented_data/visual_examples/" + file.split('.')[0] + "_augmented.png", augmented_image)
+            else:
+                cv2.imwrite("augmented_data/avg_diff_examples/" + file.split('.')[0] + "_"+ str(orig_avg) +"_labeled.png", resized_img)
+                cv2.imwrite("augmented_data/avg_diff_examples/" + file.split('.')[0] + "_"+ str(avg) + "_augmented.png", augmented_image)
+    
+    print("class instances:")
+    print(class_instances)
+    print("")
+    print("class_instances_orig:")
+    print(class_instances_orig)
+
+if __name__ == "__main__":
+    print("Start data preprocessing ...")
+
+    parser = argparse.ArgumentParser(description='Rearranges the xview2 dataset structure to fit the folder structure specified by pytorch\'s Image Dataloader.')
+    parser.add_argument('-src', '--source', type=str, help='Source directory of dataset', required=True)
+    parser.add_argument('-out', '--output', type=str, help='Output directory of augmented images', required=True)
+    parser.add_argument('-ds', '--dssize', type=int, help='The original image pool, based off of the xview2.txt. i.e.: 280, 700, 1400, 2799', required=True)
+    parser.add_argument('-num', '--number', type=int, help='Set \'number\' to activate random sampling of said amount. Don\'t set to activate linear/Single-Instace sampling', required=False)
+    parser.add_argument('-txt', '--txtxview2', type=str, default='./data/xview2.txt', help='Path to xview2.txt file', required=True)
+    args = parser.parse_args()
+
+    src_path = args.source #"./data/train/"
+    out_path = args.output #"./augmented_datasets/DATASET_NAME/"
+    ds_size = args.dssize #280 | 700 | 1400 | 2799
+    samples = args.number # use for random sampling
+    xview_txt = args.txtxview2 #"data/xview2.txt"
+
+    if(samples):
+        performIARandom(src_path, out_path, ds_size, IACONFIG, samples, xview_txt)
+    else:
+        performIAPerImage(src_path, out_path, ds_size, IACONFIG, xview_txt)
+    
+    print("Finished.")
