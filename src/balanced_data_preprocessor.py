@@ -5,7 +5,7 @@ import shutil
 #-----------------Constants----------------#
 
 # Amount of images per class
-LABEL_INSTANCES = 500
+LABEL_INSTANCES = 40
 
 # Output path of balanced dataset 
 NEW_BALANCED_DATA_PATH  = "./augmented_datasets/balanced_" + str(LABEL_INSTANCES)

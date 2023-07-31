@@ -89,6 +89,17 @@ Under *notebooks/baseline.ipynb* is a jupyter notebook for the *baseline* model.
 
 Under *notebooks/inAugment.ipynb* is a jupyter notebook that trains on any given model.
 
+The datasets for the models need to be in the structure:
+
+```
+dataset_dir
+-> 0
+-> 1
+-> 2
+-> 3
+-> 4
+```
+
 
 
 
