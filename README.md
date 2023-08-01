@@ -10,12 +10,13 @@ We implement the data augmentation method InAugment by Arar et al.
 
 
 ## Requirements
-OPENCV 4.7.0
 
 PYTHON 3.10
 
 ## Installation
-
+```
+pip install -r requirements.txt
+```
 ## Usage
 
 1. Download [xview2](https://xview2.org/) train, test and holdout data.
