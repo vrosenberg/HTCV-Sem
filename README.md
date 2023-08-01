@@ -102,6 +102,13 @@ dataset_dir:
 └── 4
 ```
 
+Where the numbers represent different JDS labels:
+- 1: No Damage
+- 2: Minor Damage
+- 3: Major Damage
+- 4: Destroyed
+- 0: No Buildings (Misc/Filler label)
+
 
 
 
