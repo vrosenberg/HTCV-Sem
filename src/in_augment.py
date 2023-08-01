@@ -7,7 +7,6 @@ from shapely.geometry import Point, Polygon, box
 import math
 import random
 import time
-from PIL import Image, ImageDraw
 import argparse
 
 
