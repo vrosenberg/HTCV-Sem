@@ -92,13 +92,14 @@ Under *notebooks/inAugment.ipynb* is a jupyter notebook that trains on any given
 
 The datasets for the models need to be in the structure:
 
+dataset_dir:
 ```
-dataset_dir
--> 0
--> 1
--> 2
--> 3
--> 4
+.
+├── 0
+├── 1
+├── 2
+├── 3
+└── 4
 ```
 
 
