@@ -1,11 +1,7 @@
 import cv2
 import numpy as np
 import json
-import re
 import os
-from shapely.geometry import Point, Polygon, box
-import math
-import random
 import time
 import argparse
 
@@ -21,101 +17,14 @@ DAMAGE_LEVEL_TO_SCORE = {
     "no-building" : 0
 }
 
+# Configs of InAugment
 IACONFIG = {
-        "input_shape" : 224,
-        "initial_shape" : 48,
+        "input_shape" : 224, # Input Shape of NN (e.g. ResNet)
+        "initial_shape" : 48, # Shape of Copied Patch
         "resize_shapes" : [134,80,48] # Order from larger to smaller
 }
-#AUGMENTED_DATA_PATH = "./augmented_datasets/"
-#BASE_DATA_PATH = "base_100_linear/"
-#DS_SIZE = 2799
-#AMOUNT_OF_SAMPLES = 3000
 
-#RESNET_INPUT_SHAPE = (224,224)
-#INITIAL_PATCH_SHAPE = (48,48)
-#RESIZE_PATCH_SHAPES = [(134,134),(80,80),(48,48)]
-#IMAGE_SHAPE = (1024,1024)
-#LABELS_PATH = "./data/train/labels/"
-#IMAGES_PATH = "./data/train/images/"
-
-
-
-
-def get_random_patch(image, H_patch, W_patch):
-    
-    patch_size = [H_patch, W_patch]
-
-    min_x = 1 - patch_size[1] 
-    min_y = 1 - patch_size[0]
-
-    max_x = image.shape[0] - 1 
-    max_y = image.shape[1] - 1
-
-    x = np.random.randint(min_x,max_x+1)
-    y = np.random.randint(min_y,max_y+1)
-    x_pos = x
-    y_pos = y
-    #trim patch_size according to random crop pos
-    actual_patch_size = [patch_size[0],patch_size[1]]
-    if(x < 0):
-        actual_patch_size[1] = x + patch_size[1]
-        x_pos = 0
-    if(y < 0):
-        actual_patch_size[0] = y + patch_size[0]
-        y_pos = 0
-    if(x + patch_size[1] > image.shape[0]):
-        actual_patch_size[1] = image.shape[0] - x
-    if(y + patch_size[0] > image.shape[1]):
-        actual_patch_size[0] = image.shape[1] - y
-
-    patch = image[y_pos:y_pos+actual_patch_size[0],x_pos:x_pos+actual_patch_size[1]]
-
-    return (patch,{ "start_point" : (x_pos,y_pos),
-                    "end_point" : (x_pos+actual_patch_size[1],y_pos+actual_patch_size[0])})
-
-def paste_patch_at_random_location(image,patch, patch_coords):
-    min_x = 1 - patch.shape[1] 
-    min_y = 1 - patch.shape[0]
-
-    max_x = image.shape[0] - 1 
-    max_y = image.shape[1] - 1
-
-    x = np.random.randint(min_x,max_x+1)
-    y = np.random.randint(min_y,max_y+1)
-    x_pos = x
-    y_pos = y
-
-    x_patch_pos = 0
-    y_patch_pos = 0
-    #trim patch_size according to random crop pos
-    actual_patch_size = [patch.shape[0],patch.shape[1]]
-    if(x < 0):
-        actual_patch_size[1] = x + patch.shape[1]
-        x_pos = 0
-        x_patch_pos = x_patch_pos - x
-    if(y < 0):
-        actual_patch_size[0] = y + patch.shape[0]
-        y_pos = 0
-        y_patch_pos = y_patch_pos - y
-    if(x + patch.shape[1] > image.shape[0]):
-        actual_patch_size[1] = image.shape[0] - x
-    if(y + patch.shape[0] > image.shape[1]):
-        actual_patch_size[0] = image.shape[1] - y
-
-    clipped_patch = patch[y_patch_pos:y_patch_pos+actual_patch_size[0],x_patch_pos:x_patch_pos+actual_patch_size[1]]
-    image[y_pos:y_pos+actual_patch_size[0],x_pos:x_pos+actual_patch_size[1]] = clipped_patch
-    
-    copy_coords = { 
-        "start_point" : (patch_coords["start_point"][0]+ x_patch_pos, patch_coords["start_point"][1] + y_patch_pos),
-        "end_point" : (patch_coords["start_point"][0] + x_patch_pos+actual_patch_size[1], patch_coords["start_point"][1] + y_patch_pos+actual_patch_size[0])
-    }
-
-    paste_coords = {
-        "start_point" : (x_pos,y_pos),
-        "end_point" : (x_pos+actual_patch_size[1],y_pos+actual_patch_size[0])
-    }
-    return image, copy_coords, paste_coords
-
+# Returns all Polygons of an Image
 def get_polygon_points_list(json_data):
     polygons = json_data['features']['xy']
     polygon_points_list = []
@@ -137,14 +46,7 @@ def get_polygon_points_list(json_data):
         
     return polygon_points_list
 
-def scale_polygon_points(polygon_points, scale_factor):
-    return[(x * scale_factor, y * scale_factor) for x, y in polygon_points]
-
-def get_building_intersections(label_data, scale_factor, patch_polygon):
-    scaled_polygon_points_list = [(buildID,scale_polygon_points(polygon_points, scale_factor)) for buildID, polygon_points in get_polygon_points_list(label_data)]
-    building_polygon_list = [(buildID, Polygon(scaled_polygon_points)) for buildID, scaled_polygon_points in scaled_polygon_points_list]
-    return [buildID for buildID, building_polygon in building_polygon_list if(patch_polygon.intersects(building_polygon))]
-    
+# Paste Patch onto same random Location of Image/Reference 
 def paste_patch(image,patch, target, target_patch):
     min_x = 1 - patch.shape[1] 
     min_y = 1 - patch.shape[0]
@@ -182,6 +84,7 @@ def paste_patch(image,patch, target, target_patch):
     
     return image.copy(), target.copy()
 
+# Copy random Patch from Image/Reference
 def copy_patch(image, target, H_patch, W_patch, patch_number):
     
     patch_size = [H_patch, W_patch]
@@ -214,6 +117,7 @@ def copy_patch(image, target, H_patch, W_patch, patch_number):
 
     return image_patch.copy(), update_target_patch(target_patch, patch_number)
 
+# Updates Reference Patch with (buildingID, patchID + 1, buildingDMG)
 def update_target_patch(target_patch, patch_number):
     
     updated_patch = target_patch.copy()
@@ -225,7 +129,7 @@ def update_target_patch(target_patch, patch_number):
             updated_patch[y,x] = target_pixel
     return updated_patch
 
-
+# Returns a Reference Map where each Pixel contains (buildingID, patchID, buildingDMG)
 def get_pixel_data(label_data, shape, scale_factor):
     polygon_points_list = get_polygon_points_list(label_data)
     
@@ -233,10 +137,12 @@ def get_pixel_data(label_data, shape, scale_factor):
     for idx, (dmgLevel, polygon_points) in enumerate(polygon_points_list):
         scaled_polygon_points = [(polygon_point[0] * scale_factor , polygon_point[1] * scale_factor) for polygon_point in polygon_points]
         scaled_polygon_points = np.round(scaled_polygon_points).astype(np.int32)
+
+        # color contains (buildingID, patchID, buildingDMG)
         cv2.fillPoly(ref_image, [scaled_polygon_points], color=(idx,0,dmgLevel))
     return ref_image
 
-
+# Maps Unique buildingID, patchID Pairs
 def get_memory_map(ref_data):
     memory_map = {}
 
@@ -257,6 +163,7 @@ def get_memory_map(ref_data):
                     memory_map[id][copy_patch_number] = dmg_level
     return memory_map
 
+# Calculates rounded AVG buildingDMG with memory map
 def calc_average_damage(memory_map):
     total = 0.0
     count = 0.0
@@ -274,9 +181,8 @@ def calc_average_damage(memory_map):
 
     return average
 
-
+# Perfoms InAugment in mode: Single-Instance/Linear
 def performIAPerImage(src_path, out_path, ds_size, IAconfig, xview_txt):
-    #json_files = os.listdir(LABELS_PATH)
 
     resnet_input_shape = (IAconfig["input_shape"],IAconfig["input_shape"])
     resize_patch_shapes = [(length,length) for length in IAconfig["resize_shapes"]]
@@ -288,16 +194,13 @@ def performIAPerImage(src_path, out_path, ds_size, IAconfig, xview_txt):
     class_instances_orig = [0,0,0,0,0]
     class_instances = [0,0,0,0,0]
 
-    #for i in range(AMOUNT_OF_SAMPLES):
 
     with open(xview_txt,"r") as file:
         xview_entries = file.readlines()
     xview_entries = [line.strip() for line in xview_entries]
     xview_entries = xview_entries[:ds_size]
 
-    #for i in range(AMOUNT_OF_SAMPLES): 
     for i, file in enumerate(xview_entries):    
-        #file = np.random.choice(xview_entries)
         if "post" not in file:
             continue
         print(file)
@@ -312,35 +215,36 @@ def performIAPerImage(src_path, out_path, ds_size, IAconfig, xview_txt):
         f = open(label_path+json_name)
         label_data = json.load(f)
 
+
+        # Get Reference Map
         target_data = get_pixel_data(label_data, resnet_input_shape, scale_factor)
         augmented_target = target_data.copy()
 
+        # Calculate AVG DMG of pre IA image
         memory_map = get_memory_map(augmented_target)
         orig_avg = calc_average_damage(memory_map)
-        #print("original average: " + str(orig_avg))
+    
         for idx, resize_shape in enumerate(resize_patch_shapes):
             
-            # Copy from original image/ref
+            # Copy from Original Image/Refefernce
             patch, target_patch = copy_patch(resized_img, target_data, initial_patch_shape[0],initial_patch_shape[1], idx + 1)
 
-            # Resize it
+            # Resize Image/Refefernce Patch
             resized_patch = cv2.resize(patch, resize_shape)
             resized_target_patch = cv2.resize(target_patch, resize_shape, interpolation=cv2.INTER_NEAREST)
 
-            # Paste it
+            # Paste it into IA Image/Refefernce
             augmented_image, augmented_target = paste_patch(augmented_image, resized_patch, augmented_target, resized_target_patch)
             
+        # Calculate AVG of post IA image
         memory_map = get_memory_map(augmented_target)
         avg = calc_average_damage(memory_map)
 
-        #print("new average: " + str(avg))
-        #print(i)
-        
         class_instances_orig[orig_avg] += 1
         class_instances[avg] += 1
 
+        # Save Augmented Image
         save_img_folder_path = out_path + str(avg) + "/"
-        save_img_path = save_img_folder_path + file.split('.')[0] +"_id_" + str(i) +".png"
         if(not os.path.exists(save_img_folder_path)):
             os.makedirs(save_img_folder_path)  
         cv2.imwrite(out_path + str(avg) + "/" + file.split('.')[0] +"_id_" + str(i) +".png", augmented_image)
@@ -410,8 +314,8 @@ def performIAPerImage(src_path, out_path, ds_size, IAconfig, xview_txt):
     print("class_instances_orig:")
     print(class_instances_orig)
 
+# Perfoms InAugment in mode: random
 def performIARandom(src_path, out_path, ds_size, IAconfig, samples, xview_txt):
-    #json_files = os.listdir(LABELS_PATH)
 
     resnet_input_shape = (IAconfig["input_shape"],IAconfig["input_shape"])
     resize_patch_shapes = [(length,length) for length in IAconfig["resize_shapes"]]
@@ -445,35 +349,35 @@ def performIARandom(src_path, out_path, ds_size, IAconfig, samples, xview_txt):
         f = open(label_path+json_name)
         label_data = json.load(f)
 
+        # Get Reference Map
         target_data = get_pixel_data(label_data, resnet_input_shape, scale_factor)
         augmented_target = target_data.copy()
 
+        # Calculate AVG DMG of pre IA image
         memory_map = get_memory_map(augmented_target)
         orig_avg = calc_average_damage(memory_map)
-        #print("original average: " + str(orig_avg))
+
         for idx, resize_shape in enumerate(resize_patch_shapes):
             
-            # Copy from original image/ref
+            # Copy from Original Image/Refefernce
             patch, target_patch = copy_patch(resized_img, target_data, initial_patch_shape[0],initial_patch_shape[1], idx + 1)
 
-            # Resize it
+            # Resize Image/Refefernce Patch
             resized_patch = cv2.resize(patch, resize_shape)
             resized_target_patch = cv2.resize(target_patch, resize_shape, interpolation=cv2.INTER_NEAREST)
 
-            # Paste it
+            # Paste it into IA Image/Refefernce
             augmented_image, augmented_target = paste_patch(augmented_image, resized_patch, augmented_target, resized_target_patch)
             
+        # Calculate AVG of post IA image
         memory_map = get_memory_map(augmented_target)
         avg = calc_average_damage(memory_map)
-
-        #print("new average: " + str(avg))
-        #print(i)
         
         class_instances_orig[orig_avg] += 1
         class_instances[avg] += 1
 
+        # Save Augmented Image
         save_img_folder_path = out_path + str(avg) + "/"
-        save_img_path = save_img_folder_path + file.split('.')[0] +"_id_" + str(i) +".png"
         if(not os.path.exists(save_img_folder_path)):
             os.makedirs(save_img_folder_path)  
         cv2.imwrite(out_path + str(avg) + "/" + file.split('.')[0] +"_id_" + str(i) +".png", augmented_image)
@@ -557,11 +461,11 @@ if __name__ == "__main__":
     src_path = args.source #"./data/train/"
     out_path = args.output #"./augmented_datasets/DATASET_NAME/"
     ds_size = args.dssize #280 | 700 | 1400 | 2799
-    samples = args.number # use for random sampling
+    number = args.number # use for random sampling
     xview_txt = args.txtxview2 #"data/xview2.txt"
 
-    if(samples):
-        performIARandom(src_path, out_path, ds_size, IACONFIG, samples, xview_txt)
+    if(number):
+        performIARandom(src_path, out_path, ds_size, IACONFIG, number, xview_txt)
     else:
         performIAPerImage(src_path, out_path, ds_size, IACONFIG, xview_txt)
     

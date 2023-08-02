@@ -1,4 +1,4 @@
-# takes augmented data samples and outputs folder with balanced label amounts
+# Take Images from the augmented Images and build the Balanced Dataset. Source data needs to have enough images to fill each class.
 import os
 import shutil
 
@@ -14,8 +14,6 @@ NEW_BALANCED_DATA_PATH  = "./augmented_datasets/balanced_" + str(LABEL_INSTANCES
 AUG_DATA_PATH = "./augmented_datasets/DATASET_NAME"
 
 #------------------------------------------#
-
-
 
 
 LABELS = ["0","1","2","3","4"]

@@ -29,6 +29,7 @@ RESNET_INPUT_SHAPE = (224,224)
 
 #-----------------------------------------#
 
+# Mixes Augmented and Original Images into a Dataset
 def preprocess_data():
 
     with open(XVIEW2_TXT,"r") as file:

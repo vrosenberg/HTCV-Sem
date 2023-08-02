@@ -11,6 +11,8 @@ We implement the data augmentation method InAugment by Arar et al.
 
 ## Requirements
 
+Tested with:
+
 PYTHON 3.10
 
 ## Installation
@@ -29,7 +31,7 @@ pip install -r requirements.txt
 This takes the raw images from the xview2 data and orders them into the required directory structure. Type ```python3 src/data_preprocessor.py -h``` for help.
 This also equals to the *Baseline* dataset
 ```
-python3 src/data_preprocessor.py -src ./data -out ./dataset  
+python src/data_preprocessor.py -src ./data -out ./dataset  
 ```
 ### Perform InAugment
 **mode**: random  
@@ -43,7 +45,7 @@ Generates a specified amount of augmented images from a given original data pool
 - set number to the amount of images to sample, for further steps a certain amount of images need to be generated
 
 ```
-python3 src/in_augment.py -src "./data/train/" -out "./augmented_datasets/DATASET_NAME/" -ds 280 -num 1000
+python src/in_augment.py -src "./data/train/" -out "./augmented_datasets/DATASET_NAME/" -ds 280 -num 1000
 ```
 
 **mode**: single-instance/linear   
@@ -57,7 +59,7 @@ This generates the dataset for the single-instance/linear model
 - performs InAugment once per image, resulting augmented dataset is as large as datasize
   
 ```
-python3 src/in_augment.py -src "./data/train/" -out "./augmented_datasets/DATASET_NAME/" -ds 280
+python src/in_augment.py -src "./data/train/" -out "./augmented_datasets/DATASET_NAME/" -ds 280
 ```
 
 ### Mix datasets
@@ -70,7 +72,7 @@ Combine regular and augmented data to create *half-half*, *majority original*, *
 - augmented data to original data ratio describes how many augmented images are being placed into the dataset in relation to the data size. Ratio = 2.0 => twice amount of augmented images than regular/original
 
 ```
-python3.10 src/augmented_data_preprocessor.py  
+python src/mixed_dataset_preprocessor.py  
 ```
 
 ### Balance datasets
@@ -81,7 +83,7 @@ Take images from the augmented images and build the *balanced* dataset. Source d
 - label instances refers to the amount of images per class
 
 ```
-python3.10 src/balanced_data_preprocessor.py
+python src/balanced_dataset_preprocessor.py
 ```
 
 ## Average Building Damage Classification

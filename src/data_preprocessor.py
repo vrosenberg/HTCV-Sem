@@ -18,20 +18,8 @@ DAMAGE_LEVEL_TO_SCORE = {
     "no-building" : 0
 }
 
-'''
-def load_data_entries(path_to_xview2txt, data_type = "train", percentage_as_str = "100"):
-    data = []
-    selected_data = open(path_to_xview2txt,'r')
-    
-    files = selected_data.read().splitlines()
-    if(data_type == "train"):
-        files = files[:MAP_PERCENT_TO_AMOUNT[percentage_as_str]]
 
-    for file in files:
-        data.append((file,round(calc_average_damage(file, data_type))))
-    return data
-'''
-
+# Calculate AVG buildingDMG
 def calc_average_damage(source_path, file, data_type):
     
     label_file_path = os.path.join(source_path,data_type,"labels",file.split('.')[0]+".json")
@@ -50,6 +38,7 @@ def calc_average_damage(source_path, file, data_type):
         return 0
     return total_dmg/count
 
+# Save Images into Directory of the associated Class/Label
 def format_data(source_dir, output_dir, data_partition):
     files = os.listdir(os.path.join(source_dir,data_partition,"images"))
     data = [(file, round(calc_average_damage(source_dir, file, data_partition))) for file in files if(file.find("post") >= 0)]
