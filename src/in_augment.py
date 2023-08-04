@@ -17,12 +17,13 @@ DAMAGE_LEVEL_TO_SCORE = {
     "no-building" : 0
 }
 
-# Configs of InAugment
+#---------------- CONFIGS FOR InAugment---------------#
 IACONFIG = {
         "input_shape" : 224, # Input Shape of NN (e.g. ResNet)
         "initial_shape" : 48, # Shape of Copied Patch
         "resize_shapes" : [134,80,48] # Order from larger to smaller
 }
+#----------------------------------------------------#
 
 # Returns all Polygons of an Image
 def get_polygon_points_list(json_data):
@@ -450,7 +451,7 @@ def performIARandom(src_path, out_path, ds_size, IAconfig, samples, xview_txt):
 if __name__ == "__main__":
     print("Start data preprocessing ...")
 
-    parser = argparse.ArgumentParser(description='Rearranges the xview2 dataset structure to fit the folder structure specified by pytorch\'s Image Dataloader.')
+    parser = argparse.ArgumentParser(description='Performs InAugment on an unordered dataset with the given xview2.txt. IA specific configurations need to be adjusted in in_augment.py.')
     parser.add_argument('-src', '--source', type=str, help='Source directory of dataset', required=True)
     parser.add_argument('-out', '--output', type=str, help='Output directory of augmented images', required=True)
     parser.add_argument('-ds', '--dssize', type=int, help='The original image pool, based off of the xview2.txt. i.e.: 280, 700, 1400, 2799', required=True)
